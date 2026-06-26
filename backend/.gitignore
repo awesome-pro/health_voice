@@ -158,3 +158,8 @@ Thumbs.db
 
 # Phase 6 audit trail (PHI — never commit)
 audit/
+
+# speechbrain runtime artifacts — symlink dirs that point into the local
+# ~/.cache (recreated on model load; never commit).
+None/
+pretrained_models/
