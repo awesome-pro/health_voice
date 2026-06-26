@@ -1,0 +1,17 @@
+# Monorepo root ignores. Each package (backend/, frontend/) has its own
+# .gitignore for language-specific artifacts (.venv, node_modules, .next, .env,
+# audit/, *.npy, ...).
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs & scratch
+*.log
+scratch/
+tmp/

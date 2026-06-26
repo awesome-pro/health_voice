@@ -1,0 +1,24 @@
+[project]
+name = "healthvoice-backend"
+version = "0.1.0"
+description = "HealthVoice — on-device inference service (VAD + Whisper ASR). Phase 1."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "numpy>=1.26",
+    "silero-vad>=5.1",
+    "mlx-whisper>=0.4",
+    # Phase 2 — speaker diarization / voiceprint
+    "pyannote.audio>=3.1",
+    "speechbrain>=1.0",
+    # Phase 3 — clinical entity extraction (biomedical NER)
+    "transformers>=4.40",
+    "python-dotenv>=1.2.2",
+    "openai>=2.43.0",
+    "httpx>=0.28.1",
+]
+
+[tool.uv]
+# Pin to a CPython that has wheels for torch / mlx / silero on Apple Silicon.
+# (System python is 3.14 which has no ML wheels yet.)

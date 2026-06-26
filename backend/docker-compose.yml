@@ -1,0 +1,26 @@
+# Local HAPI FHIR R4 server (Phase 5).
+#
+# The approved SOAP note is pushed here as real FHIR resources (Patient,
+# Encounter, MedicationStatement, Composition). Running locally keeps all
+# patient data on-device — the same "local HAPI FHIR" architecture the case
+# study describes, and the HIPAA story stays intact (nothing leaves the Mac).
+#
+#   docker compose up -d        # start (first run pulls the image + ~30-60s boot)
+#   docker compose logs -f fhir # watch startup
+#   docker compose down         # stop (data persists in the named volume)
+services:
+  fhir:
+    image: hapiproject/hapi:latest
+    container_name: healthvoice-fhir
+    ports:
+      - "8080:8080" # -> http://localhost:8080/fhir
+    environment:
+      hapi.fhir.fhir_version: R4
+      # Allow the browser to open stored resources directly during the demo.
+      hapi.fhir.cors.allowed_origin: "*"
+    volumes:
+      - hapi-data:/data/hapi
+    restart: unless-stopped
+
+volumes:
+  hapi-data:
