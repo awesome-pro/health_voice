@@ -10,7 +10,9 @@ Mic (browser) ─▶ VAD (silero) ─▶ Whisper ASR (MLX) ─▶ speaker ID (EC
 ```
 
 Audio and PHI never leave the machine — ASR, speaker ID, and NER all run locally. The
-**only** network egress is the SOAP note-structuring call to OpenAI.
+only network egress is the SOAP note-structuring call to OpenAI, and even that is
+optional: set `SOAP_BACKEND=ollama` to run the note model locally too, and the entire
+pipeline becomes 100% on-device.
 
 ## Requirements
 
@@ -41,8 +43,10 @@ First boot downloads the Whisper / NER / ECAPA weights and warms them (~1 min).
 
 | Var | Default | Notes |
 |-----|---------|-------|
-| `OPENAI_API_KEY` | — | Required for SOAP generation (only egress). |
-| `OPENAI_MODEL` | `gpt-5.5` | Note-structuring model. |
+| `SOAP_BACKEND` | `openai` | `openai` (hosted, one network call) or `ollama` (fully local — nothing leaves the machine). |
+| `OPENAI_API_KEY` | — | Required when `SOAP_BACKEND=openai` (the only egress). |
+| `OPENAI_MODEL` | `gpt-5.5` | Note-structuring model (OpenAI path). |
+| `OLLAMA_MODEL` / `OLLAMA_BASE_URL` | `qwen3:8b` / `localhost:11434` | Local note model + endpoint (when `SOAP_BACKEND=ollama`; `ollama pull qwen3:8b` first). |
 | `HF_TOKEN` | — | Optional; enables the gated pyannote diarization refine pass. |
 | `FINAL_MODEL` | `mlx-community/whisper-large-v3-turbo` | Accurate per-sentence ASR. |
 | `DRAFT_MODEL` | `mlx-community/whisper-base.en-mlx` | Fast live-partial ASR. |

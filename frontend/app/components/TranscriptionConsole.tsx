@@ -33,6 +33,8 @@ import {
   X,
 } from "lucide-react";
 
+import { createPortal } from "react-dom";
+
 import { cn } from "@/lib/utils";
 import {
   Badge,
@@ -40,6 +42,7 @@ import {
   Card,
   CardBody,
   FieldLabel,
+  InfoHint,
   Input,
   SectionHeader,
   StatusBadge,
@@ -1213,7 +1216,14 @@ export default function TranscriptionConsole() {
           divided
           icon={<Tags className="h-[18px] w-[18px]" />}
           title="Clinical entities"
-          description="Extracted live by biomedical NER — the structured basis for the SOAP note."
+          info={
+            <>
+              Tagged on-device by a biomedical NER model as you speak. These
+              entities are what the SOAP note is generated from, so anything
+              clinically important should appear here.
+            </>
+          }
+          description="Clinical terms picked out of the conversation in real time."
           actions={
             <span className="text-xs font-medium text-slate-400">
               {entityCount} entit{entityCount === 1 ? "y" : "ies"}
@@ -1224,7 +1234,7 @@ export default function TranscriptionConsole() {
         <div className="px-5 py-5 sm:px-6">
           {entityCount === 0 ? (
             <p className="py-6 text-center text-sm text-slate-400">
-              Clinical terms (symptoms, medications, vitals…) will appear here as
+              Clinical terms will appear here as
               they&rsquo;re mentioned.
             </p>
           ) : (
@@ -1352,9 +1362,16 @@ function SoapPanel({
         divided
         icon={<Stethoscope className="h-[18px] w-[18px]" />}
         title="SOAP note"
-        description={`AI-generated${
+        info={
+          <>
+            The model structures the transcript into Subjective, Objective,
+            Assessment, and Plan. It is told never to invent a finding, but it
+            is a draft. Read every line before you file it.
+          </>
+        }
+        description={`Generated${
           model ? ` by ${model}` : ""
-        } · editable — review and correct before filing to FHIR.`}
+        } from the transcript. Review and edit it before filing to FHIR.`}
         actions={
           <>
             {canRegenerate &&
@@ -1365,7 +1382,7 @@ function SoapPanel({
                   variant="secondary"
                   size="sm"
                   onClick={onRegenerate}
-                  title="Re-run SOAP generation from the transcript — no re-recording"
+                  title="Generate the note again from the current transcript, no re-recording needed"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                   Regenerate
@@ -1389,7 +1406,8 @@ function SoapPanel({
                 <FileText className="h-5 w-5" />
               </span>
               <p className="text-center text-sm text-slate-500">
-                Transcript ready — generate the structured SOAP note from it.
+                The transcript is ready. Generate the structured SOAP note from
+                it.
               </p>
               <Button onClick={onRegenerate}>Generate SOAP note</Button>
             </div>
@@ -1521,7 +1539,13 @@ function SoapPanel({
 
               {/* Clinician signature — recorded as the legal attester + in the audit trail */}
               <label className="flex flex-col gap-1.5 sm:max-w-xs">
-                <FieldLabel>Signed by (clinician)</FieldLabel>
+                <FieldLabel className="inline-flex items-center gap-1.5">
+                  Signed by (clinician)
+                  <InfoHint label="What signing does">
+                    This name is recorded as the attester on the FHIR Provenance
+                    resource and written to the local audit log when you file.
+                  </InfoHint>
+                </FieldLabel>
                 <Input
                   value={clinician}
                   disabled={fhirState === "pushing"}
@@ -1626,7 +1650,7 @@ function EditableList({
     <div className="flex flex-col gap-1.5">
       {items.length === 0 && (
         <p className="pl-1 text-xs italic text-slate-400">
-          Nothing documented — add a line if needed.
+          Nothing documented yet. Add a line if you need to.
         </p>
       )}
       {items.map((it, i) => (
@@ -1807,9 +1831,9 @@ function SafetyBanner({
         </h2>
       </div>
       <p className="mt-2.5 text-xs leading-relaxed text-red-700">
-        Potential safety-critical content was detected in this encounter. Review
-        and take appropriate clinical action — the note cannot be filed until
-        acknowledged.
+        This encounter contains content that may be safety-critical. Review it,
+        take the appropriate clinical action, and acknowledge below. The note
+        cannot be filed until you do.
       </p>
       <ul className="mt-3 space-y-2">
         {alerts.map((a, i) => (
@@ -1878,7 +1902,7 @@ function CorrectionChip() {
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700"
-      title="Self-correction detected — the later, corrected statement is preferred"
+      title="The speaker corrected themselves; the note keeps the later, corrected statement"
     >
       <CornerDownLeft className="h-3 w-3" />
       Correction
@@ -1918,7 +1942,13 @@ function PatientCard({
         <SectionHeader
           icon={<User className="h-[18px] w-[18px]" />}
           title="Patient"
-          description="Identifies the FHIR record this note is filed under — used to create the Patient resource when you approve & push."
+          info={
+            <>
+              This identifies the FHIR record the note files under. The Patient
+              resource is created from these fields when you approve and push.
+            </>
+          }
+          description="Who this note is filed for."
           actions={
             ready ? (
               <StatusBadge tone="success">Ready to file</StatusBadge>
@@ -2190,11 +2220,13 @@ function EnrollmentPanel({
                   Nurse voice profile
                 </h2>
                 <EnrollStatusPill enrolled={enrolled} />
+                <InfoHint label="About voice enrollment">
+                  Record about ten seconds of the nurse&rsquo;s voice once. The
+                  console builds a voiceprint from it and uses it to label Nurse
+                  and Patient lines during the encounter. It stays on this
+                  device.
+                </InfoHint>
               </div>
-              <p className="mt-1 max-w-md text-[13px] leading-relaxed text-slate-500">
-                Read a sentence or two in your normal voice so we can tell you
-                apart from the patient. Required for live Nurse / Patient labels.
-              </p>
               {recording && (
                 <p className="mt-2 text-xs font-medium text-clinical-accent">
                   Recording {secondsLeft}s…
@@ -2250,47 +2282,55 @@ function EnrollmentPanel({
 // Display order + label + chip styling for each clinical category.
 const CATEGORY_META: Record<
   EntityCategory,
-  { label: string; chip: string; mark: string }
+  { label: string; chip: string; mark: string; dot: string }
 > = {
   symptom: {
     label: "Symptoms",
     chip: "border-rose-200 bg-rose-50 text-rose-700",
     mark: "bg-rose-100 text-rose-900 decoration-rose-300",
+    dot: "bg-rose-400",
   },
   condition: {
     label: "Conditions",
     chip: "border-orange-200 bg-orange-50 text-orange-700",
     mark: "bg-orange-100 text-orange-900 decoration-orange-300",
+    dot: "bg-orange-400",
   },
   medication: {
     label: "Medications & dosage",
     chip: "border-emerald-200 bg-emerald-50 text-emerald-700",
     mark: "bg-emerald-100 text-emerald-900 decoration-emerald-300",
+    dot: "bg-emerald-400",
   },
   vital: {
     label: "Vitals & labs",
     chip: "border-sky-200 bg-sky-50 text-sky-700",
     mark: "bg-sky-100 text-sky-900 decoration-sky-300",
+    dot: "bg-sky-400",
   },
   procedure: {
     label: "Procedures",
     chip: "border-indigo-200 bg-indigo-50 text-indigo-700",
     mark: "bg-indigo-100 text-indigo-900 decoration-indigo-300",
+    dot: "bg-indigo-400",
   },
   anatomy: {
     label: "Anatomy",
     chip: "border-teal-200 bg-teal-50 text-teal-700",
     mark: "bg-teal-100 text-teal-900 decoration-teal-300",
+    dot: "bg-teal-400",
   },
   context: {
     label: "Context",
     chip: "border-slate-200 bg-slate-100 text-slate-600",
     mark: "bg-slate-100 text-slate-700 decoration-slate-300",
+    dot: "bg-slate-400",
   },
   other: {
     label: "Other",
     chip: "border-slate-200 bg-slate-100 text-slate-600",
     mark: "bg-slate-100 text-slate-700 decoration-slate-300",
+    dot: "bg-slate-400",
   },
 };
 
@@ -2304,6 +2344,78 @@ const CATEGORY_ORDER: EntityCategory[] = [
   "context",
   "other",
 ];
+
+// A highlighted clinical span with a custom hover tooltip. The tooltip is
+// portaled to <body> with fixed positioning so the scrolling transcript
+// container (overflow-y-auto) can never clip it, and it flips below the word
+// when there isn't room above.
+function EntityMark({
+  children,
+  meta,
+  score,
+}: {
+  children: ReactNode;
+  meta: { label: string; mark: string; dot: string };
+  score: number;
+}) {
+  const ref = useRef<HTMLElement>(null);
+  const [tip, setTip] = useState<{
+    left: number;
+    top: number;
+    place: "above" | "below";
+  } | null>(null);
+
+  const open = () => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const place = r.top < 72 ? "below" : "above";
+    setTip({
+      left: r.left + r.width / 2,
+      top: place === "above" ? r.top : r.bottom,
+      place,
+    });
+  };
+  const close = () => setTip(null);
+
+  return (
+    <mark
+      ref={ref}
+      className={`cursor-default rounded px-0.5 underline decoration-dotted underline-offset-2 transition-colors ${meta.mark}`}
+      onMouseEnter={open}
+      onMouseLeave={close}
+    >
+      {children}
+      {tip &&
+        createPortal(
+          <span
+            role="tooltip"
+            style={{
+              position: "fixed",
+              left: tip.left,
+              top: tip.top,
+              transform:
+                tip.place === "above"
+                  ? "translate(-50%, calc(-100% - 8px))"
+                  : "translate(-50%, 8px)",
+            }}
+            className="pointer-events-none z-[60] flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg ring-1 ring-black/10"
+          >
+            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot}`} />
+            <span>{meta.label}</span>
+            <span className="text-slate-500">·</span>
+            <span className="tabular-nums text-slate-300">{score}%</span>
+            <span
+              className={`absolute left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-900 ${
+                tip.place === "above" ? "top-full -mt-1" : "bottom-full -mb-1"
+              }`}
+            />
+          </span>,
+          document.body
+        )}
+    </mark>
+  );
+}
 
 // Render an utterance with its NER spans wrapped in colored highlights, using
 // the model's char offsets. Spans are non-overlapping within one utterance.
@@ -2320,13 +2432,13 @@ function renderWithEntities(text: string, entities: Entity[]): ReactNode {
     if (e.start > cursor) out.push(text.slice(cursor, e.start));
     const meta = CATEGORY_META[e.category] ?? CATEGORY_META.other;
     out.push(
-      <mark
+      <EntityMark
         key={`${e.start}-${i}`}
-        className={`rounded px-0.5 underline decoration-dotted underline-offset-2 ${meta.mark}`}
-        title={`${meta.label} · ${Math.round(e.score * 100)}%`}
+        meta={meta}
+        score={Math.round(e.score * 100)}
       >
         {text.slice(e.start, e.end)}
-      </mark>
+      </EntityMark>
     );
     cursor = e.end;
   });

@@ -270,7 +270,7 @@ async def soap_generate(body: SoapGenerateIn) -> dict:
     return {
         "ok": True,
         "note": note,
-        "model": config.OPENAI_MODEL,
+        "model": soap.model,
         "safetyAlerts": safety_alerts,
         "corrections": corrections,
         "completeness": completeness,

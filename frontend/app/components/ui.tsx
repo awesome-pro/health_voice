@@ -1,3 +1,5 @@
+"use client";
+
 /* -------------------------------------------------------------------------- */
 /*  UI primitives — a small, shadcn-style component kit (Tailwind, no Radix).  */
 /*  Shared across the HealthVoice console so every surface uses the same       */
@@ -10,8 +12,11 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
   forwardRef,
+  useRef,
+  useState,
 } from "react";
-import { Loader2 } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Info, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -33,13 +38,99 @@ export function CardBody({ className, ...props }: HTMLAttributes<HTMLDivElement>
   return <div className={cn("p-5 sm:p-6", className)} {...props} />;
 }
 
+/* -------------------------------- InfoHint -------------------------------- */
+
 /**
- * A consistent panel header: an icon tile, a title + optional description, and
- * an optional right-aligned actions slot. Used at the top of every Card.
+ * A small info icon that reveals a hover card with supporting detail. The card
+ * is portaled to <body> with fixed positioning, so a scrolling or overflow
+ * container can never clip it, and it flips below the icon when there is no
+ * room above. Hover and keyboard-focus both open it.
+ */
+export function InfoHint({
+  children,
+  label = "More detail",
+  className,
+}: {
+  children: ReactNode;
+  label?: string;
+  className?: string;
+}) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [tip, setTip] = useState<{
+    left: number;
+    top: number;
+    place: "above" | "below";
+  } | null>(null);
+
+  const open = () => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const place = r.top < 140 ? "below" : "above";
+    const left = Math.max(
+      150,
+      Math.min(r.left + r.width / 2, window.innerWidth - 150)
+    );
+    setTip({ left, top: place === "above" ? r.top : r.bottom, place });
+  };
+  const close = () => setTip(null);
+
+  return (
+    <button
+      type="button"
+      ref={ref}
+      aria-label={label}
+      onMouseEnter={open}
+      onMouseLeave={close}
+      onFocus={open}
+      onBlur={close}
+      className={cn(
+        "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clinical-accent/40",
+        className
+      )}
+    >
+      <Info className="h-3.5 w-3.5" strokeWidth={2} />
+      {tip &&
+        createPortal(
+          <span
+            role="tooltip"
+            style={{
+              position: "fixed",
+              left: tip.left,
+              top: tip.top,
+              maxWidth: 280,
+              transform:
+                tip.place === "above"
+                  ? "translate(-50%, calc(-100% - 10px))"
+                  : "translate(-50%, 10px)",
+            }}
+            className="pointer-events-none z-[60] block rounded-xl bg-slate-900 px-3.5 py-2.5 text-left text-xs font-normal leading-relaxed text-slate-100 shadow-xl ring-1 ring-black/10"
+          >
+            {children}
+            <span
+              className={cn(
+                "absolute left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 bg-slate-900",
+                tip.place === "above"
+                  ? "top-full -mt-1.5"
+                  : "bottom-full -mb-1.5"
+              )}
+            />
+          </span>,
+          document.body
+        )}
+    </button>
+  );
+}
+
+/**
+ * A consistent panel header: an icon tile, a title (with optional info hover
+ * card) + optional description, and an optional right-aligned actions slot.
+ * Used at the top of every Card.
  */
 export function SectionHeader({
   icon,
   title,
+  info,
   description,
   actions,
   divided = false,
@@ -47,6 +138,7 @@ export function SectionHeader({
 }: {
   icon?: ReactNode;
   title: ReactNode;
+  info?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
   divided?: boolean;
@@ -71,6 +163,7 @@ export function SectionHeader({
             <h2 className="text-[15px] font-semibold tracking-tight text-slate-900">
               {title}
             </h2>
+            {info && <InfoHint>{info}</InfoHint>}
           </div>
           {description && (
             <p className="mt-1 text-[13px] leading-relaxed text-slate-500">

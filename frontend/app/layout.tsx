@@ -9,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "HealthVoice — Real-time Clinical Voice Scribe",
+  title: "HealthVoice · Real-time clinical voice scribe",
   description:
-    "HealthVoice is a voice-AI clinical scribe prototype: live on-device transcription, speaker ID, medical NER, an AI SOAP note with safety checks, and clinician-reviewed FHIR filing. Synthetic data only.",
+    "HealthVoice is a voice-AI clinical scribe prototype. Live on-device transcription, speaker ID, medical NER, a generated SOAP note with safety checks, and clinician-reviewed FHIR filing. Synthetic data only.",
 };
 
 export default function RootLayout({

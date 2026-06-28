@@ -33,8 +33,8 @@ export default function Home() {
       <TranscriptionConsole />
 
       <footer className="mt-12 border-t border-clinical-border pt-5 text-center text-xs text-slate-400">
-        Prototype — synthetic data only. Speech, speaker ID, and entity
-        extraction run locally on-device.
+        Prototype on synthetic data only. Speech, speaker ID, and entity
+        extraction all run locally on this device.
       </footer>
     </main>
   );

@@ -87,14 +87,29 @@ NER_MODEL = os.environ.get("NER_MODEL", "d4data/biomedical-ner-all")
 # Drop entity spans below this model confidence to keep highlights clean.
 NER_MIN_SCORE = float(os.environ.get("NER_MIN_SCORE", "0.5"))
 
-# --- Phase 4: SOAP note generation (OpenAI GPT-4o) -----------------------------
-# The only stage that calls a hosted API. Set OPENAI_API_KEY in backend/.env.
-# Everything before this (ASR, voiceprint, NER) runs fully on-device.
+# --- Phase 4: SOAP note generation --------------------------------------------
+# This is the note-structuring stage. It runs on one of two backends:
+#   SOAP_BACKEND=openai  -> hosted OpenAI model (the only network egress).
+#   SOAP_BACKEND=ollama  -> a local model via Ollama, so the WHOLE pipeline is
+#                           on-device and nothing ever leaves the machine.
+# Everything before this (ASR, voiceprint, NER) is on-device either way.
+SOAP_BACKEND = os.environ.get("SOAP_BACKEND", "openai").lower()
+
+# OpenAI path. Set OPENAI_API_KEY in backend/.env.
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.5")
+
+# Ollama path (fully local). Talks to the native Ollama API; the model must be
+# pulled already (`ollama pull qwen3:8b`). Structured output is constrained to the
+# SOAP JSON schema and model "thinking" is disabled so the reply is the note only.
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
+
 # Low temperature keeps the note faithful. Reasoning models (gpt-5/o-series)
-# reject a custom temperature; the generator falls back to the model default.
+# reject a custom temperature; the OpenAI generator falls back to the model default.
 SOAP_TEMPERATURE = float(os.environ.get("SOAP_TEMPERATURE", "0.2"))
+# A local 8B model is slower than a hosted call, so allow a generous timeout.
+SOAP_TIMEOUT = float(os.environ.get("SOAP_TIMEOUT", "120"))
 
 # --- Phase 5: FHIR push (local HAPI FHIR R4) -----------------------------------
 # The approved + edited SOAP note is written to a local HAPI FHIR server running
